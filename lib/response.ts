@@ -1,3 +1,4 @@
+// lib/response.ts
 /**
 * Generic all-in-one response wrapper to mangle responses without having to memorize all the weird syntax that Wrangler / Cloudflare workers need
 */

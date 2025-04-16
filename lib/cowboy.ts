@@ -1,3 +1,4 @@
+// lib/cowboy.ts
 import debug from '#lib/debug';
 import CowboyMiddleware from '#middleware';
 import CowboyRequest from '#lib/request';

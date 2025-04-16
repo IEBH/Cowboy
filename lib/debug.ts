@@ -1,3 +1,4 @@
+// lib/debug.ts
 export default function CowboyDebug(...msg) {
 	if (!CowboyDebug.enabled) return;
 	console.log('COWBOY-DEBUG', ...msg.map(m =>

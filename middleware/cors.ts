@@ -1,3 +1,4 @@
+// middleware/cors.ts
 /**
 * Register a generic middleware to handle CORS requests
 *

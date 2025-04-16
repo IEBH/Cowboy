@@ -1,3 +1,4 @@
+// middleware/parseJwt.ts
 /**
 * Return a parsing middleware layer which accepts a JWT body and decodes the object into req.body
 *

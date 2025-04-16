@@ -1,3 +1,4 @@
+// middleware/index.ts
 import cors from '#middleware/cors';
 import parseJwt from '#middleware/parseJwt';
 import validate from '#middleware/validate';
