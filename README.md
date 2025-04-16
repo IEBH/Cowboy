@@ -1,4 +1,4 @@
-@MomsfriendlyDevCo/Cowboy
+@IEBH/Cowboy
 =========================
 A friendler wrapper around the Cloudflare [Wrangler SDK](https://github.com/cloudflare/workers-sdk)
 
@@ -21,7 +21,7 @@ Example `src/worker.js` file providing a GET server which generates random compa
 
 ```javascript
 import {faker} from '@faker-js/faker';
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 export default cowboy()
 	.use('cors') // Inject CORS functionality in every request
@@ -38,7 +38,7 @@ ReST server example
 Example `src/worker.js` file providing a GET / POST ReST-like server:
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 export default cowboy()
 	.use('cors')
@@ -71,7 +71,7 @@ Cron scheduling is a little basic at the moment but likely to improve in the fut
 To set up a Cron handler simply install it by calling `.schedule(callback)`:
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 export default cowboy()
 	.schedule(async (event, env, ctx) => {
@@ -94,7 +94,7 @@ API
 cowboy()
 --------
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 ```
 Instanciate a `Cowboy` class instance and provide a simple router skeleton.
 
@@ -102,7 +102,7 @@ Instanciate a `Cowboy` class instance and provide a simple router skeleton.
 Cowboy
 ------
 ```javascript
-import {Cowboy} from '@momsfriendlydevco/cowboy';
+import {Cowboy} from '@iebh/cowboy';
 ```
 The instance created by `cowboy()`.
 
@@ -164,7 +164,7 @@ Install a scheduled Cron handler function.
 CowboyRequest
 -------------
 ```javascript
-import CowboyRequest from '@momsfriendlydevco/cowboy/request';
+import CowboyRequest from '@iebh/cowboy/request';
 ```
 A wrapped version of the incoming `CloudflareRequest` object.
 
@@ -179,7 +179,7 @@ This object is identical to the original [CloudflareRequest](https://developers.
 CowboyResponse
 --------------
 ```javascript
-import CowboyResponse from '@momsfriendlydevco/cowboy/request';
+import CowboyResponse from '@iebh/cowboy/request';
 ```
 An Express-like response object.
 Calling any method which ends the session will cause the middleware chain to terminate and the response to be served back.
@@ -202,7 +202,7 @@ All functions (except `toCloudflareResponse()`) are chainable and return the ori
 CowboyTestkit
 -------------
 ```javascript
-import CowboyTestkit from '@momsfriendlydevco/cowboy/testkit';
+import CowboyTestkit from '@iebh/cowboy/testkit';
 ```
 A series of utilities to help write testkits with Wrangler + Cowboy.
 
@@ -213,7 +213,7 @@ Inject various Mocha before/after tooling.
 
 ```javascript
 import axios from 'axios';
-import {cowboyMocha} from '@momsfriendlydevco/cowboy/testkit';
+import {cowboyMocha} from '@iebh/cowboy/testkit';
 import {expect} from 'chai';
 
 describe('My Wrangler Endpoint', ()=> {
@@ -284,7 +284,7 @@ To use middleware in your routes you can either declare it using `.use(middlewar
 Middleware can be declared in the following ways:
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 // Shorthand with defaults - just specify the name
 cowboy()
@@ -305,7 +305,7 @@ cowboy()
 
 
 // Middleware function - include the import
-import cors from '@momsfriendlydevco/cowboy/middleware/cors';
+import cors from '@iebh/cowboy/middleware/cors';
 cowboy()
 	.get('/path',
 		cors({
@@ -328,7 +328,7 @@ Validate the incoming `req.$KEY` object using [Joyful](https://github.com/MomsFr
 This function takes two arguments - the `req` subkey to examine and the validation function / object.
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 // Shorthand with defaults - just specify the name
 cowboy()
@@ -347,7 +347,7 @@ Shorthand validator which runs validation on the `req.body` parameter only.
 
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 // Shorthand with defaults - just specify the name
 cowboy()
@@ -371,7 +371,7 @@ Shorthand validator which runs validation on the `req.params` parameter only.
 
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 // Shorthand with defaults - just specify the name
 cowboy()
@@ -390,7 +390,7 @@ Shorthand validator which runs validation on the `req.query` parameter only.
 
 
 ```javascript
-import cowboy from '@momsfriendlydevco/cowboy';
+import cowboy from '@iebh/cowboy';
 
 // Shorthand with defaults - just specify the name
 cowboy()

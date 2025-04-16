@@ -1,5 +1,5 @@
 {
-  "name": "@momsfriendlydevco/cowboy",
+  "name": "@iebh/cowboy",
   "version": "1.2.0",
   "description": "Wrapper around Cloudflare Wrangler to provide a more Express-like experience",
   "scripts": {
@@ -22,14 +22,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/MomsFriendlyDevCo/Cowboy.git"
+    "url": "git+https://github.com/IEBH/Cowboy.git"
   },
   "author": "Matt Carter <matt@mfdc.biz>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/MomsFriendlyDevCo/Cowboy/issues"
+    "url": "https://github.com/IEBH/Cowboy/issues"
   },
-  "homepage": "https://github.com/MomsFriendlyDevCo/Cowboy#readme",
+  "homepage": "https://github.com/IEBH/Cowboy#readme",
   "engineStrict": false,
   "engines": {
     "node": ">=20.x"
