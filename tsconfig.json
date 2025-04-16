@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "esnext",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "types": [],
+    "lib": ["esnext"],
+    "outDir": "dist",
+    "declaration": true
+  },
+  "include": ["lib/**/*", "middleware/**/*"],
+  "exclude": ["node_modules"]
+}

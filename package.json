@@ -2,23 +2,40 @@
   "name": "@iebh/cowboy",
   "version": "1.2.0",
   "description": "Wrapper around Cloudflare Wrangler to provide a more Express-like experience",
+  "main": "./dist/lib/cowboy.js",
+  "types": "./dist/lib/cowboy.d.ts",
   "scripts": {
-    "lint": "eslint ."
+    "clean": "rimraf dist",
+    "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "wrangler"
   ],
   "type": "module",
   "imports": {
-    "#lib/*": "./lib/*.js",
-    "#middleware": "./middleware/index.js",
-    "#middleware/*": "./middleware/*.js"
+    "#lib/*": "./dist/lib/*.js",
+    "#middleware": "./dist/middleware/index.js",
+    "#middleware/*": "./dist/middleware/*.js"
   },
   "exports": {
-    ".": "./lib/cowboy.js",
-    "./*": "./lib/*.js",
-    "./middleware": "./middleware/index.js",
-    "./middleware/*": "./middleware/*.js"
+    ".": {
+      "import": "./dist/lib/cowboy.js",
+      "types": "./dist/lib/cowboy.d.ts"
+    },
+    "./*": {
+      "import": "./dist/lib/*.js",
+      "types": "./dist/lib/*.d.ts"
+    },
+    "./middleware": {
+      "import": "./dist/middleware/index.js",
+      "types": "./dist/middleware/index.d.ts"
+    },
+    "./middleware/*": {
+      "import": "./dist/middleware/*.js",
+      "types": "./dist/middleware/*.d.ts"
+    }
   },
   "repository": {
     "type": "git",
@@ -41,7 +58,11 @@
   },
   "devDependencies": {
     "@momsfriendlydevco/eslint-config": "^1.0.7",
-    "eslint": "^8.51.0"
+    "@typescript-eslint/eslint-plugin": "^8.30.1",
+    "@typescript-eslint/parser": "^8.30.1",
+    "eslint": "^8.51.0",
+    "rimraf": "^6.0.1",
+    "typescript": "^5.8.3"
   },
   "eslintConfig": {
     "extends": "@momsfriendlydevco",
@@ -49,9 +70,18 @@
       "es6": true,
       "node": true
     },
+    "parser": "@typescript-eslint/parser",
     "parserOptions": {
-      "ecmaVersion": 13,
-      "sourceType": "module"
-    }
+      "ecmaVersion": "latest",
+      "sourceType": "module",
+      "project": "./tsconfig.json"
+    },
+    "plugins": [
+      "@typescript-eslint"
+    ],
+    "ignorePatterns": [
+      "dist",
+      "node_modules"
+    ]
   }
 }
