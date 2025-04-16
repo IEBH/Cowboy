@@ -12,6 +12,6 @@
     "outDir": "dist",
     "declaration": true
   },
-  "include": ["lib/**/*", "middleware/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules"]
 }
