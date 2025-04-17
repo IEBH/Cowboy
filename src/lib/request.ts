@@ -1,6 +1,8 @@
 // lib/request.ts
 import debug from '#lib/debug';
 import type { Cowboy } from '#lib/cowboy'; // Assuming this type definition exists
+import type { Request as CFRequest } from '@cloudflare/workers-types'; // Import CF types
+
 
 // Helper function (optional but good practice)
 function errorToString(error: unknown): string {
@@ -88,7 +90,7 @@ export default class CowboyRequest implements CowboyRequestInterface {
 	json!: () => Promise<any>;
 	// Add declarations for any other Request properties/methods you copy and use
 
-	constructor(cfReq: Request, props: CowboyRequestConstructorProps) {
+	constructor(cfReq: CFRequest, props: CowboyRequestConstructorProps) {
 		// 1. Copy properties from cfReq instance corresponding to Request.prototype keys
 		//    This mimics the original Object.assign(this, Object.fromEntries(...))
 		//    Crucially, bind methods to cfReq to ensure 'this' context is correct when called later.
