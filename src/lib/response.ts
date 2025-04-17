@@ -1,24 +1,39 @@
 // lib/response.ts
+export interface CowboyResponseInterface {
+	body: any;
+	code: number | null;
+	headers: Record<string, string>;
+	hasSent: boolean;
+	CloudflareResponse: typeof Response;
+	set(options: Record<string, string> | string, value?: string): this;
+	type(type: string): this;
+	send(data: any, end?: boolean): this;
+	end(data?: any): this;
+	status(code: number): this;
+	sendStatus(code: number, data?: any, end?: boolean): this;
+	toCloudflareResponse(): Response;
+}
+
 /**
 * Generic all-in-one response wrapper to mangle responses without having to memorize all the weird syntax that Wrangler / Cloudflare workers need
 */
-export default class CowboyResponse {
-	body = '';
-	code = null;
-	headers = {};
-	hasSent = false;
-	CloudflareResponse = Response;
+export default class CowboyResponse implements CowboyResponseInterface {
+	body: any = '';
+	code: number | null = null;
+	headers: Record<string, string> = {};
+	hasSent: boolean = false;
+	CloudflareResponse: typeof Response = Response; // Use global Response
 
 	/**
 	* Assign various output headers
-	* @param {Object|String} options Either an header object to be merged or the header to set
-	* @param {*} [value] If `options` is a string, the value of the header
-	* @returns {CowboyResponse} This chainable instance
+	* @param options Either an header object to be merged or the header to set
+	* @param [value] If `options` is a string, the value of the header
+	* @returns This chainable instance
 	*/
-	set(options, value) {
-		if (typeof options == 'string') {
+	set(options: Record<string, string> | string, value?: string): this {
+		if (typeof options === 'string' && value !== undefined) {
 			this.headers[options] = value;
-		} else {
+		} else if (typeof options === 'object') {
 			Object.assign(this.headers, options);
 		}
 
@@ -29,10 +44,10 @@ export default class CowboyResponse {
 	/**
 	* ExpressJS-like type setter and shortcut function
 	* Recognises various shorthand types or defaults to setting a MIME type
-	* @param {String} type The type string to set, can be a shorthand string or a mime type
-	* @returns {CowboyResponse} This chainable instance
+	* @param type The type string to set, can be a shorthand string or a mime type
+	* @returns This chainable instance
 	*/
-	type(type) {
+	type(type: string): this {
 		switch (type) {
 			case 'html': return this.set('Content-Type', 'text/html');
 			case 'json': return this.set('Content-Type', 'application/json');
@@ -46,15 +61,15 @@ export default class CowboyResponse {
 
 	/**
 	* Send data and (optionally) mark the response as complete
-	* @param {*} data The data to transmit
-	* @param {Boolean} [end=true] Whether to also end the transmision
-	* @returns {CowboyResponse} This chainable instance
+	* @param data The data to transmit
+	* @param [end=true] Whether to also end the transmision
+	* @returns This chainable instance
 	*/
-	send(data, end = true) {
+	send(data: any, end: boolean = true): this {
 		if (this.code === null) this.code = 200; // Assume OK if not told otherwise
 
 		if (
-			typeof data == 'string'
+			typeof data === 'string'
 			|| data instanceof FormData
 			|| data instanceof ReadableStream
 			|| data instanceof URLSearchParams
@@ -73,11 +88,11 @@ export default class CowboyResponse {
 
 	/**
 	* Mark the transmission as complete
-	* @param {*} [data] Optional data to send before ending
-	* @returns {CowboyResponse} This chainable instance
+	* @param [data] Optional data to send before ending
+	* @returns This chainable instance
 	*/
-	end(data) {
-		if (data) this.send(data);
+	end(data?: any): this {
+		if (data !== undefined) this.send(data);
 		this.hasSent = true;
 		return this;
 	}
@@ -85,15 +100,16 @@ export default class CowboyResponse {
 
 	/**
 	* Set the status code we are responding with
-	* @param {Number} code The HTTP response code to respond with
-	* @returns {CowboyResponse} This chainable instance
+	* @param code The HTTP response code to respond with
+	* @returns This chainable instance
 	*/
-	status(code) {
+	status(code: number): this {
 		this.code = code;
-		if (!this.body)
+		if (!this.body && this.body !== '') { // Allow empty string body
 			this.body = this.code >= 200 && this.code <= 299
 				? 'ok' // Set body payload if we don't already have one
-				: `${this.code}: Fail`
+				: `${this.code} Fail`;
+		}
 
 		return this;
 	}
@@ -101,12 +117,12 @@ export default class CowboyResponse {
 
 	/**
 	* Set the response status code and (optionally) end the transmission
-	* @param {Number} code The HTTP response code to respond with
-	* @param {*} [data] Optional data to send before ending
-	* @param {Boolean} [end=true] Whether to also end the transmision
-	* @returns {CowboyResponse} This chainable instance
+	* @param code The HTTP response code to respond with
+	* @param [data] Optional data to send before ending (DEPRECATED - Use status().send())
+	* @param [end=true] Whether to also end the transmission
+	* @returns This chainable instance
 	*/
-	sendStatus(code, data, end = true) {
+	sendStatus(code: number, data?: any, end: boolean = true): this {
 		if (data) throw new Error('Data is not allowed with CowboyResponse.sendStatus(code) - use CowBoyresponse.status(CODE).send(DATA) instead');
 		this.status(code);
 		if (end) this.end();
@@ -115,12 +131,12 @@ export default class CowboyResponse {
 
 
 	/**
-	* Convert the current CoyboyResponse into a CloudflareResponse object
-	* @returns {CloudflareResponse} The cloudflare output object
+	* Convert the current CowboyResponse into a CloudflareResponse object
+	* @returns The cloudflare output object
 	*/
-	toCloudflareResponse() {
+	toCloudflareResponse(): Response {
 		let cfOptions = {
-			status: this.code,
+			status: this.code ? this.code : undefined,
 			headers: this.headers,
 		};
 		console.log('Response', JSON.stringify({
