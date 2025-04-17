@@ -1,54 +1,70 @@
 // lib/testkit.ts
-import Debug from 'debug';
+import Debug, { type Debugger } from 'debug';
 import fs from 'node:fs/promises';
-import {spawn} from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import toml from 'toml';
+import type { AxiosInstance } from 'axios'; // Import Axios type if needed
+import type { Context } from 'mocha'; // Import Mocha type
 
-const debug = Debug('cowboy');
+const debug: Debugger = Debug('cowboy');
 
 /**
 * The currently active worker (if any)
-* @type {ChildProcess}
 */
-export let worker;
+export let worker: ChildProcess | null = null;
 
+interface StartOptions {
+	axios: AxiosInstance | null;
+	server?: boolean;
+	debug?: boolean;
+	logOutput?: (line: string) => void;
+	logOutputErr?: (line: string) => void;
+	host?: string;
+	port?: number;
+	logLevel?: 'debug' | 'info' | 'log' | 'warn' | 'error' | 'none'; // Wrangler log levels
+}
+
+interface WranglerConfig {
+	main?: string;
+	send_metrics?: boolean;
+	// Add other wrangler.toml properties as needed
+	[key: string]: any;
+}
 
 /**
 * Boot a wranger instance in the background
 *
-* @param {Object} [options] Additional options to mutate behaviour
-* @param {Axios} [options.axios] Axios instance to mutate with the base URL, if specified
-* @param {Boolean} [options.server=true] Initialize a local server - disable this if you're running your own
-* @param {Boolean} [options.debug=false] Force debug as if `DEBUG=cowboy` was set
-* @param {Function} [options.logOutput] Function to wrap STDOUT output. Called as `(line:String)`
-* @param {Function} [options.logOutputErr] Function to wrap STDERR output. Called as `(line:String)`
-* @param {String} [options.host='127.0.0.1'] Host to run Wrangler on
-* @param {String} [options.port=8787] Host to run Wrangler on
-* @param {String} [options.logLevel='log'] Log level to instruct Wrangler to run as
-*
-* @returns {Promise} A promise which resolves when the operation has completed
+* @param options Additional options to mutate behaviour
+* @returns A promise which resolves when the operation has completed
 */
-export function start(options) {
-	let settings = {
+export function start(options?: StartOptions): Promise<void> {
+	const settings: Required<StartOptions> = {
 		axios: null,
 		server: true,
 		debug: false,
-		logOutput: output => console.log('WRANGLER>', output),
-		logOutputErr: output => console.log('WRANGLER!', output),
+		logOutput: (output: string) => console.log('WRANGLER>', output),
+		logOutputErr: (output: string) => console.error('WRANGLER!', output),
 		host: '127.0.0.1',
 		port: 8787,
 		logLevel: 'log',
-		...options,
+		...(options || {}), // Ensure options is an object
 	};
 
 	if (settings.debug) Debug.enable('cowboy');
 	debug('Start cowboy testkit');
-	let wranglerConfig; // Eventual wrangler config
+	let wranglerConfig: WranglerConfig; // Eventual wrangler config
 
 	return Promise.resolve()
 		// Read in project `wrangler.toml` {{{
-		.then(()=> fs.readFile('wrangler.toml', 'utf8'))
-		.then(contents => toml.parse(contents))
+		.then(() => fs.readFile('wrangler.toml', 'utf8'))
+		.then(contents => {
+			try {
+				return toml.parse(contents) as WranglerConfig;
+			} catch (e: any) {
+				debug('Error parsing wrangler.toml', e);
+				throw new Error(`Failed to parse wrangler.toml: ${e.message}`);
+			}
+		})
 		.then(config => {
 			debug('Read config', config);
 			if (!Object.hasOwn(config, 'send_metrics')) throw new Error('Please append `send_metrics = false` to wrangler.toml to Warngler asking questions during boot');
@@ -56,27 +72,37 @@ export function start(options) {
 		})
 		// }}}
 		// Launch worker {{{
-		.then(()=> {
-			if (!settings.server) return;
-			debug('Running Wrangler against script', wranglerConfig.main);
+		.then(() => {
+			if (!settings.server) return Promise.resolve(); // Skip server start if disabled
+			debug('Running Wrangler against script', wranglerConfig.main || '[entry point not specified]');
 
 			let isRunning = false;
-			return new Promise((resolve, reject) => {
-				worker = spawn('node', [
+			return new Promise<void>((resolve, reject) => {
+				if (worker) {
+					debug('Wrangler already seems to be running (PID:', worker.pid, '). Stopping previous instance first.');
+					stop(); // Ensure previous instance is stopped
+				}
+
+				const wranglerArgs = [
 					'./node_modules/.bin/wrangler',
 					'dev',
-					`--host=${settings.host}`,
+					`--host=${settings.host}`, // TODO: Check with MC whether to use --ip for host
 					`--port=${settings.port}`,
 					`--log-level=${settings.logLevel}`,
 					...(debug.enabled ? [
 						'--var=COWBOY_DEBUG:1'
 					]: []),
-				]);
+				];
 
-				worker.stdout.on('data', data => {
-					let output = data.toString().replace(/\r?\n$/, '');
+				debug('Spawning Wrangler with args:', wranglerArgs.join(' '));
+
+				worker = spawn('node', wranglerArgs, { stdio: 'pipe' }); // Use pipe for stdio
+
+				worker.stdout?.on('data', (data: Buffer) => {
+					const output = data.toString().replace(/\r?\n$/, '');
 
 					if (!isRunning && /Ready on https?:\/\//.test(output)) {
+						debug('Wrangler ready!');
 						isRunning = true;
 						resolve();
 					}
@@ -84,55 +110,105 @@ export function start(options) {
 					settings.logOutput(output);
 				});
 
-				worker.stderr.on('data', data => {
-					settings.logOutputErr(data.toString().replace(/\r?\n$/, ''))
+				worker.stderr?.on('data', (data: Buffer) => {
+					settings.logOutputErr(data.toString().replace(/\r?\n$/, ''));
 				});
 
-				worker.on('error', reject);
+				worker.on('error', (err: Error) => {
+					debug('Wrangler spawn error:', err);
+					worker = null; // Clear worker ref on error
+					reject(err);
+				});
 
-				worker.on('close', code => {
-					debug('Wrangler exited with code', code);
+				worker.on('close', (code: number | null) => {
+					debug(`Wrangler exited with code ${code}`);
 					worker = null;
-				})
+					if (!isRunning) { // Reject if closed before becoming ready
+						reject(new Error(`Wrangler process exited prematurely with code ${code}`));
+					}
+				});
+
+				// Handle cases where wrangler might exit immediately
+				worker.on('exit', (code: number | null) => {
+					debug(`Wrangler process exited event with code ${code}`);
+					if (worker) worker.kill(); // Ensure cleanup if exit event fires early
+					worker = null;
+					if (!isRunning) {
+						reject(new Error(`Wrangler process exited before ready state with code ${code}`));
+					}
+				});
 			});
 		})
 		// }}}
 		// Mutate axios if provided {{{
-		.then(()=> {
+		.then(() => {
 			if (settings.axios) {
-				let baseURL = `http://${settings.host}:${settings.port}`;
-				debug('Setting axios BaseURL', baseURL);
+				const baseURL = `http://${settings.host}:${settings.port}`;
+				debug('Setting axios BaseURL to', baseURL);
 				settings.axios.defaults.baseURL = baseURL;
 			}
 		})
 		// }}}
+		.catch(err => {
+			debug('Error during testkit start:', err);
+			stop(); // Attempt cleanup on error
+			throw err; // Re-throw the error
+		});
 }
 
 /**
 * Stop background wrangler instances
-* @returns {Promise} A promise which resolves when the operation has completed
+* @returns Promise resolving when the process is stopped (or immediately if no process)
 */
-export function stop() {
-	if (!worker) return; // Worker not active anyway
-	debug('Stop cowboy testkit');
+export function stop(): Promise<void> {
+	return new Promise((resolve) => {
+		if (!worker || worker.killed) {
+			if (worker?.killed) debug('Wrangler worker already killed.');
+			else debug('No active Wrangler worker to stop.');
+			worker = null;
+			return resolve();
+		}
 
-	debug(`Stopping active Wrangler worker PID #${worker.pid}`);
-	worker.kill('SIGTERM');
+		debug(`Stopping active Wrangler worker PID #${worker.pid}`);
+		worker.kill('SIGTERM');
+
+		// Add a timeout to forcefully kill if it doesn't stop gracefully
+		const killTimeout = setTimeout(() => {
+			if (worker && !worker.killed) {
+				debug(`Wrangler worker PID #${worker.pid} did not exit gracefully, sending SIGKILL.`);
+				worker.kill('SIGKILL');
+			}
+		}, 3000); // 3 seconds grace period
+
+		worker.on('close', (code) => {
+			debug(`Wrangler (PID: ${worker?.pid}) stopped with code ${code}.`);
+			clearTimeout(killTimeout);
+			worker = null;
+			resolve();
+		});
+
+		worker.on('error', (err) => {
+			debug(`Error stopping Wrangler worker PID #${worker?.pid}:`, err);
+			clearTimeout(killTimeout);
+			worker = null; // Assume it's gone even on error
+			resolve();
+		});
+	});
 }
 
 /**
 * Inject various Mocha before/after tooling
-* @param {Object} [options] Additional options to pass to `start()`
+* @param options Additional options to pass to `start()`
 */
-export function cowboyMocha(options) {
+export function cowboyMocha(options?: StartOptions) {
 
-	before('start cowboy/testkit', function() {
+	before('start cowboy/testkit', function (this: Context) {
 		this.timeout(30 * 1000);
 		return start(options);
 	});
 
-	after('stop cowboy/testkit', function() {
-		this.timeout(5 * 1000);
+	after('stop cowboy/testkit', function (this: Context) {
+		this.timeout(10 * 1000)
 		return stop();
 	});
 
