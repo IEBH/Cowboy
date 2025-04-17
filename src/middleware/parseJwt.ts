@@ -18,7 +18,7 @@ interface ParseJwtOptions {
 export default function CowboyMiddlewareParseJwt(options?: ParseJwtOptions): CowboyMiddlewareFunction {
 	let settings = {
 		async isJwt(req: CowboyRequestInterface, _res: CowboyResponseInterface) {
-			return req.headers.get('content-type') == 'application/jwt';
+			return req.headers['content-type'] == 'application/jwt';
 		},
 		...options,
 	};
@@ -27,7 +27,7 @@ export default function CowboyMiddlewareParseJwt(options?: ParseJwtOptions): Cow
 		const isJwt = await settings.isJwt(req, res);
 		if (!isJwt) return;
 
-		const text = await req.text();
+		const text = typeof req.text === 'string' ? req.text : await req.text();
 		const base64 = text.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
 		req.body = JSON.parse(atob(base64));
 	}
