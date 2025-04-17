@@ -86,7 +86,7 @@ export function start(options?: StartOptions): Promise<void> {
 				const wranglerArgs = [
 					'./node_modules/.bin/wrangler',
 					'dev',
-					`--host=${settings.host}`, // TODO: Check with MC whether to use --ip for host
+					`--host=${settings.host}`,
 					`--port=${settings.port}`,
 					`--log-level=${settings.logLevel}`,
 					...(debug.enabled ? [

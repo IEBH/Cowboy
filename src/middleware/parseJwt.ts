@@ -27,8 +27,6 @@ export default function CowboyMiddlewareParseJwt(options?: ParseJwtOptions): Cow
 		const isJwt = await settings.isJwt(req, res);
 		if (!isJwt) return;
 
-		// TODO: CF - According to typescript this is the correct way to handle it
-		// Need to check with MC
 		const text = await req.text();
 		const base64 = text.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
 		req.body = JSON.parse(atob(base64));
