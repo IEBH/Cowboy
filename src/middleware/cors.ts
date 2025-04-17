@@ -1,14 +1,18 @@
 // middleware/cors.ts
+import type { CowboyMiddlewareFunction } from '#lib/cowboy';
+
+interface CorsOptions {
+	attachOptions?: boolean;
+	headers?: Record<string, string>;
+}
+
 /**
 * Register a generic middleware to handle CORS requests
 *
-* @param {Object} [options] Additional options to mutate behaviour
-* @param {Boolean} [options.attachOptions=true] Attach an `options` method against all routes that don't already have one to pass the CORS pre-flight check
-* @param {Object} [options.headers] Generic CORS headers to inject
-*
-* @returns {CowboyMiddleware}
+* @param options Additional options to mutate behaviour
+* @returns A CowboyMiddlewareFunction
 */
-export default function CowboyMiddlewareCORS(options) {
+export default function CowboyMiddlewareCORS(options?: CorsOptions): CowboyMiddlewareFunction {
 	let settings = {
 		attachOptions: true,
 		headers: {

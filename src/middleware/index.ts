@@ -7,7 +7,21 @@ import validateHeaders from '#middleware/validateHeaders';
 import validateParams from '#middleware/validateParams';
 import validateQuery from '#middleware/validateQuery';
 
-export default {
+import type { CowboyMiddlewareFunction } from '#lib/cowboy';
+
+// Define the structure of the exported object
+interface CowboyMiddlewareRegistry {
+	cors: typeof cors;
+	parseJwt: typeof parseJwt;
+	validate: typeof validate;
+	validateBody: typeof validateBody;
+	validateHeaders: typeof validateHeaders;
+	validateParams: typeof validateParams;
+	validateQuery: typeof validateQuery;
+	[key: string]: (...args: any[]) => CowboyMiddlewareFunction; // Allow for extension
+}
+
+const middlewareRegistry: CowboyMiddlewareRegistry = {
 	cors,
 	parseJwt,
 	validate,
@@ -15,4 +29,6 @@ export default {
 	validateHeaders,
 	validateParams,
 	validateQuery,
-}
+};
+
+export default middlewareRegistry;

@@ -1,22 +1,36 @@
 // middleware/parseJwt.ts
+import type { CowboyRequestInterface } from '#lib/request';
+import type { CowboyResponseInterface } from '#lib/response';
+import type { CowboyMiddlewareFunction } from '#lib/cowboy';
+
+interface ParseJwtOptions {
+	isJwt?: (req: CowboyRequestInterface, res: CowboyResponseInterface) => Promise<boolean> | boolean;
+	tokenLocation?: 'body' | 'header'; // Optional: Specify where to find the token
+	headerName?: string; // Optional: Specify header name if tokenLocation is 'header'
+}
+
 /**
-* Return a parsing middleware layer which accepts a JWT body and decodes the object into req.body
+* Return a parsing middleware layer which accepts a JWT and decodes the payload into req.body
+* Expects the JWT to be the entire request body by default or in a specified header.
 *
-* @param {Object} [options] Additional options to mutate behaviour
-* @param {Function} [options.isJwt] Async function, called as `(req, res)` to determine if the input is a JWT payload, defaults to checking the content-type header
+* @param options Additional options to mutate behaviour
 */
-export default function CowboyMiddlewareParseJwt(options) {
+export default function CowboyMiddlewareParseJwt(options?: ParseJwtOptions): CowboyMiddlewareFunction {
 	let settings = {
-		async isJwt(req, res) { // eslint-disable-line no-unused-vars
-			return req.headers['content-type'] == 'application/jwt';
+		async isJwt(req: CowboyRequestInterface, _res: CowboyResponseInterface) {
+			return req.headers.get('content-type') == 'application/jwt';
 		},
 		...options,
 	};
 
 	return async (req, res) => {
-		if (await !settings.isJwt(req, res)) return;
+		const isJwt = await settings.isJwt(req, res);
+		if (!isJwt) return;
 
-		const base64 = req.text.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+		// TODO: CF - According to typescript this is the correct way to handle it
+		// Need to check with MC
+		const text = await req.text();
+		const base64 = text.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
 		req.body = JSON.parse(atob(base64));
 	}
 }

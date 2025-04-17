@@ -1,6 +1,9 @@
 // middleware/validateParams.ts
 import CowboyMiddlewareValidate from '#middleware/validate';
+import type { CowboyMiddlewareFunction } from '#lib/cowboy';
 
-export default function CowboyMiddlewareValidateParams(validator) {
+type JoyfulValidator = any;
+
+export default function CowboyMiddlewareValidateParams(validator: JoyfulValidator): CowboyMiddlewareFunction {
 	return CowboyMiddlewareValidate('params', validator);
 }
